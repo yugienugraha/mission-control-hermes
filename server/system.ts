@@ -205,9 +205,10 @@ async function run(file: string, args: string[]): Promise<string> {
 
 /** `systemctl is-active` for one service; the exit code distinguishes active/inactive. */
 async function serviceState(name: string): Promise<ServiceState> {
-  for (const scope of ['--user', []] as const) {
+  const scopes: string[][] = [['--user'], []]
+  for (const scope of scopes) {
     try {
-      const { stdout } = await execFile('systemctl', [...scope, 'is-active', name], { timeout: COMMAND_TIMEOUT_MS, env: serviceEnv(scope === '--user') })
+      const { stdout } = await execFile('systemctl', [...scope, 'is-active', name], { timeout: COMMAND_TIMEOUT_MS, env: serviceEnv(scope.length > 0) })
       return parseServiceState(stdout)
     } catch (error) {
       const stdout = (error as { stdout?: string }).stdout
