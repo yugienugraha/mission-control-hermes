@@ -200,6 +200,10 @@
 .character-leg { background: var(--pants); bottom: 0; height: 13px; width: 9px; }.character-leg.left { left: 16px; }.character-leg.right { right: 16px; }
 .pixel-station { align-items: center; gap: 4px; justify-items: center; min-height: 116px; width: 132px; z-index: 6; }
 .pixel-station .pixel-character { order: -1; }
+/* CLI tools are a stationary computer, not a character: monitor plus tower on the desk. */
+.pixel-computer { display: inline-block; height: 58px; order: -1; position: relative; width: 52px; }
+.pixel-computer i { background: #0c1512; border: 2px solid #527065; bottom: 0; box-shadow: 0 -34px 0 0 #2a3d38, inset 0 0 6px #4be07a66; display: block; height: 26px; left: 7px; position: absolute; width: 36px; }
+.pixel-computer .state-working i, .tool-station.state-working .pixel-computer i { box-shadow: 0 -34px 0 0 #2a3d38, inset 0 0 6px #4be07a, 0 0 8px #4be07a55; }
 .pixel-station .pixel-desk { margin: 0; order: 0; }
 .pixel-station-name { background: #101815; line-height: 1.35; padding: 2px 5px; position: relative; z-index: 3; }
 .pixel-station .badge { position: relative; z-index: 3; }

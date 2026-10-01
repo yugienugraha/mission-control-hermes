@@ -76,6 +76,15 @@ export function WorkDesk({ position, active, withChair = true }: { position: Vec
   </Group>
 }
 
+/** A PC tower standing on the desk's drawer unit, for tool stations that have no character. */
+export function PcTower({ position }: { position: Vec3 }) {
+  return <Group position={position}>
+    <RBox position={[0, 0.22, 0]} size={[0.22, 0.44, 0.5]} radius={0.02} color="#22262b" roughness={0.4}/>
+    <RBox position={[0.111, 0.22, 0]} size={[0.005, 0.4, 0.46]} radius={0.002} color="#3a4046" shadow={false}/>
+    <mesh position={[0.114, 0.34, 0.18]} rotation={[0, Math.PI / 2, 0]}><circleGeometry args={[0.012, 12]}/><meshStandardMaterial color="#4be07a" emissive="#4be07a" emissiveIntensity={1.1}/></mesh>
+  </Group>
+}
+
 export function MeetingTable({ position }: { position: Vec3 }) {
   return <Group position={position}>
     <Cyl position={[0, 0.74, 0]} radius={1.05} height={0.08} color="#7a4f33" roughness={0.45} segments={40}/>

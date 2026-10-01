@@ -153,10 +153,11 @@ describe('Office snapshot', () => {
     expect(office.stations).toMatchObject([
       { name: 'default', room: 'Lounge', roomPosition: 'lounge-seat-1', state: 'Idle' },
       { name: 'coder', room: 'Lounge', roomPosition: 'lounge-seat-2', state: 'Idle' },
-      { name: 'opencode', room: 'Lounge', roomPosition: 'lounge-seat-3', state: 'Idle' },
+      { name: 'opencode', room: 'Lounge', roomPosition: 'lounge-seat-3', state: 'Idle', isTool: true },
     ])
     expect(office.stations[2].provenance).toContain('OpenCode version availability is not a state signal')
     expect(office.stations[0].provenance).toContain('Ruang managed-idle placement policy')
+    expect(office.stations[0].isTool).toBeUndefined()
     expect(office.summary).toEqual({ declared: 3, active: 0, idle: 3, offline: 0, unknown: 0, gatewaysReachable: 2, gatewaysDeclared: 2 })
   })
 

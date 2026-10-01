@@ -52,6 +52,8 @@ export interface OfficeStation {
   activity: string
   /** Fixed desk / seat number (1-based) so every agent keeps its own place in each room. */
   seat: number
+  /** CLI tools (not Hermes profiles) sit at their desk as a computer station and never wander. */
+  isTool?: boolean
   provenance: string
   freshness: string
 }
@@ -753,12 +755,13 @@ export async function collectAgentActivity(profiles: readonly string[], run: Run
 // Office
 
 /** One office station per agent: every Hermes profile, plus OpenCode when it is installed. */
-interface AgentSpec { id: string; role: string; profile?: string; gateway?: GatewayState; aliases: string[] }
+/** `isTool` marks a CLI tool (e.g. OpenCode) that is rendered as a stationary computer station. */
+interface AgentSpec { id: string; role: string; profile?: string; gateway?: GatewayState; aliases: string[]; isTool?: boolean }
 
 export function agentRoster(runtime: RuntimeSnapshot): AgentSpec[] {
   const profiles = runtime.profiles.availability === 'available' ? runtime.profiles.data : []
   const agents: AgentSpec[] = profiles.filter((profile) => PROFILE_NAME.test(profile.name)).map((profile) => ({ id: profile.name, role: 'Hermes profile', profile: profile.name, gateway: profile.gateway, aliases: [profile.name.toLowerCase()] }))
-  if (runtime.openCode.availability === 'available' && !agents.some((agent) => agent.id === 'opencode')) agents.push({ id: 'opencode', role: 'OpenCode', aliases: ['opencode', 'open-code'] })
+  if (runtime.openCode.availability === 'available' && !agents.some((agent) => agent.id === 'opencode')) agents.push({ id: 'opencode', role: 'OpenCode', aliases: ['opencode', 'open-code'], isTool: true })
   return agents
 }
 
@@ -873,6 +876,7 @@ export function buildOfficeSnapshot(runtime: RuntimeSnapshot, board: TaskBoardSn
       role: agent.role,
       ...roomForState(state, index),
       seat: index + 1,
+      ...(agent.isTool ? { isTool: true } : {}),
       state,
       currentTask,
       recentActivity,
