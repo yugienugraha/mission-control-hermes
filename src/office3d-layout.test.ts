@@ -26,6 +26,18 @@ describe('3D office placement', () => {
   })
 })
 
+describe('tool agents (CLI tools such as OpenCode)', () => {
+  it('sit at their desk as a stationary station, whatever state or room the server reports', () => {
+    for (const state of ['Working', 'Idle', 'Offline', 'Unknown', 'Collaborating'] as const) {
+      for (const room of ['Workspace', 'Lounge'] as const) {
+        const placement = placementFor(station({ id: 'opencode', role: 'OpenCode', isTool: true, state, room, roomPosition: room === 'Lounge' ? 'lounge-seat-1' : 'meeting-area' }))
+        expect(placement.position).toEqual([...DESKS[0].slice(0, 2), DESKS[0][2] - 0.75])
+        expect(placement.seated).toBe(true)
+      }
+    }
+  })
+})
+
 describe('3D office movement', () => {
   it('walks via the aisle instead of through desks', () => {
     expect(walkPath([-7.2, -4.25], [-2, -4.25])).toEqual([[-7.2, AISLE_Z], [-2, AISLE_Z], [-2, -4.25]])

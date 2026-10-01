@@ -34,6 +34,8 @@ export interface OfficeStation {
   recentActivity: string
   activity: string
   seat: number
+  /** CLI tools (not Hermes profiles) sit at their desk as a computer station and never wander. */
+  isTool?: boolean
   provenance: string
   freshness: string
 }

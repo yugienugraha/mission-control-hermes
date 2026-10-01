@@ -148,6 +148,11 @@ export function meetingSeat(index: number): Placement {
  */
 export function placementFor(station: OfficeStation, layout: OfficeLayout = DEFAULT_LAYOUT, meetingIndex = 0): Placement {
   const seat = Math.max(station.seat, 1) - 1
+  // CLI tools are a stationary computer station: always at the desk, never in a room or meeting.
+  if (station.isTool) {
+    const [x, y, z] = layout.desks[seat % layout.desks.length]
+    return { position: [x, y, z - 0.75], facing: 0, seated: true }
+  }
   if (station.room === 'Lounge') {
     const [x, y, z] = LOUNGE_SEATS[seat % LOUNGE_SEATS.length]
     return { position: [x, y, z], facing: LOUNGE_FACING[seat % LOUNGE_SEATS.length], seated: true }

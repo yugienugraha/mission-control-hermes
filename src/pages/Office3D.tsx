@@ -6,7 +6,7 @@ import { officeStateBadge } from '../office-state.ts'
 import { agentLook } from '../agents.ts'
 import { clampTarget, createLayout, idlePlan, placementFor, walkPath, type OfficeLayout, type Placement, type Vec3 } from '../office3d-layout.ts'
 import { Environment } from '../scene3d/environment.tsx'
-import { RBox, WorkDesk } from '../scene3d/props.tsx'
+import { RBox, PcTower, WorkDesk } from '../scene3d/props.tsx'
 import type { OfficeStation } from '../types.ts'
 
 // 3D view of the same Office snapshot the 2D view renders. Positions come from each station's
@@ -99,6 +99,19 @@ function Character({ station, placement, layout, onSelect, anchor }: { station: 
 // Legs and arms pivot at the hip / shoulder: translate the geometry so its top sits at the origin.
 const legGeometry = new THREE.BoxGeometry(0.17, 0.62, 0.2).translate(0, -0.31, 0)
 const armGeometry = new THREE.BoxGeometry(0.12, 0.52, 0.14).translate(0, -0.26, 0)
+
+/** A CLI tool (no character): a stationary computer station at its desk, with a screen that glows when the tool is working. */
+function ToolStation({ station, layout, onSelect, anchor }: { station: OfficeStation; layout: OfficeLayout; onSelect: (station: OfficeStation, trigger: HTMLElement | null) => void; anchor: (object: THREE.Object3D | null) => void }) {
+  const [x, , z] = placementFor(station, layout).position
+  const active = station.state === 'Working' || station.state === 'Reviewing' || station.state === 'Collaborating'
+  return <group position={[x, 0, z + 0.75]}>
+    <WorkDesk position={[0, 0, 0]} active={active} withChair={false}/>
+    <PcTower position={[-0.66, 0, -0.3]}/>
+    <group position={[0, 1.55, 0.22]} onClick={(event) => { event.stopPropagation(); onSelect(station, null) }} onPointerOver={() => { document.body.style.cursor = 'pointer' }} onPointerOut={() => { document.body.style.cursor = '' }}>
+      <object3D ref={anchor}/>
+    </group>
+  </group>
+}
 
 /**
  * Screen-space labels: each frame, project every anchor into the canvas and move its DOM label
@@ -263,17 +276,22 @@ export default function Office3D({ stations, onSelect }: { stations: OfficeStati
   // (decorative only), spread so no two share a spot.
   const idleSeats = stations.filter((station) => station.state === 'Idle' && station.room === 'Lounge').map((station) => station.seat)
   const plan = idlePlan(idleSeats, now, layout)
-  const wandering = (station: OfficeStation) => station.state === 'Idle' && station.room === 'Lounge' ? plan.get(station.seat) : undefined
+  // CLI tools never wander: they are a stationary computer station at their desk.
+  const wandering = (station: OfficeStation) => station.isTool ? undefined : station.state === 'Idle' && station.room === 'Lounge' ? plan.get(station.seat) : undefined
   // Agents at the meeting table take the next free place around it.
   const meetingOrder = stations.filter((station) => station.roomPosition === 'meeting-area').map((station) => station.id)
   const placement = (station: OfficeStation) => wandering(station)?.placement ?? placementFor(station, layout, Math.max(0, meetingOrder.indexOf(station.id)))
   const occupiedSeats = new Set(stations.filter((station) => station.room === 'Workspace' && station.roomPosition !== 'meeting-area' && station.state !== 'Offline').map((station) => station.seat))
+  // Tool stations draw their own desk (with PC tower), so the shared row skips their seats.
+  const toolSeats = new Set(stations.filter((station) => station.isTool).map((station) => station.seat))
   return <div className="office-3d" ref={setKeyTarget} tabIndex={0} role="region" aria-label="3D office. Drag to rotate, right-drag or two fingers to pan, scroll to zoom, arrow keys pan when focused.">
     <Canvas shadows dpr={[1, 2]} camera={{ position: [-3, 13, 16], fov: 40, near: 0.5, far: 150 }} gl={{ antialias: true }}>
       <Lighting theme={theme}/>
       <Environment night={theme === 'dark'} layout={layout}/>
-      {layout.desks.map((position, index) => <WorkDesk key={index} position={position} active={occupiedSeats.has(index + 1)} withChair/>)}
-      {stations.map((station) => <Character key={station.id} station={station} placement={placement(station)} layout={layout} onSelect={onSelect} anchor={register(anchors, `agent-${station.id}`)}/>)}
+      {layout.desks.map((position, index) => toolSeats.has(index + 1) ? null : <WorkDesk key={index} position={position} active={occupiedSeats.has(index + 1)} withChair/>)}
+      {stations.map((station) => station.isTool
+        ? <ToolStation key={station.id} station={station} layout={layout} onSelect={onSelect} anchor={register(anchors, `agent-${station.id}`)}/>
+        : <Character key={station.id} station={station} placement={placement(station)} layout={layout} onSelect={onSelect} anchor={register(anchors, `agent-${station.id}`)}/>)}
       <LabelProjector anchors={anchors} labels={labels}/>
       <Controls key={layout.deskCount} ref={view} panMode={panMode} keyTarget={keyTarget} layout={layout}/>
     </Canvas>
@@ -283,7 +301,7 @@ export default function Office3D({ stations, onSelect }: { stations: OfficeStati
         const busy = ['Working', 'Reviewing', 'Collaborating'].includes(station.state)
         const idle = wandering(station)
         return <button key={station.id} ref={register(labels, `agent-${station.id}`)} type="button" className={`agent-tag-3d state-${station.state.toLowerCase()}`} onClick={(event) => onSelect(station, event.currentTarget)} aria-label={`${station.name}. ${station.state}.${station.activity ? ` ${station.activity}.` : ''}${idle ? ` ${idle.placement.label ?? idle.stop.label}.` : ''} Open station details.`}>
-          {busy && station.activity && <span className="speech speech-3d">{station.activity}</span>}
+          {busy && station.activity && !station.isTool && <span className="speech speech-3d">{station.activity}</span>}
           {idle && <span className="speech speech-3d speech-idle">{idle.placement.label ?? idle.stop.label}</span>}
           <span className="agent-tag-row"><span className="pixel-station-name">{station.name}</span><span className={`badge ${badge.tone}`}>{station.state === 'Idle' ? 'Idle' : station.state}</span></span>
         </button>
