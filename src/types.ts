@@ -55,6 +55,16 @@ export interface UsageInsights {
 }
 export interface CountSource { availability: Availability; total: number }
 export interface CommandHealth { total: number; failed: number; averageMs: number }
+export type ServiceState = 'active' | 'inactive' | 'unknown'
+export interface CpuSample { cores: number[]; loadAvg: [number, number, number] }
+export interface MemSample { total: number; available: number; used: number }
+export interface DiskSample { total: number; used: number; percent: number }
+export interface NetSample { rxBytes: number; txBytes: number; rxRate: number; txRate: number }
+export interface ProcessSample { command: string; percent: number; rssKb: number }
+export interface ServiceSample { name: string; state: ServiceState }
+export interface SystemSnapshot { cpu: CpuSample; mem: MemSample; disk: DiskSample; net: NetSample; uptimeSeconds: number; processes: ProcessSample[]; services: ServiceSample[]; fetchedAt: string }
+export interface HistoryPoint { at: string; cpuPercent: number; loadAvg: number; memPercent: number; diskPercent: number; rxRate: number; txRate: number }
+export interface SystemPageSnapshot { current: SystemSnapshot; history: HistoryPoint[] }
 export interface DashboardSnapshot {
   runtime: RuntimeSnapshot
   tasks: CountSource & { byStatus: Record<string, number>; assigned: number }

@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { excludedFor, FolderError, listFolder, publicAgent, readFolderFile, resolveAgentFolders } from './folders.js'
+import { getSystem, startSystemSampler } from './system.js'
 import { API_VERSION } from './api-version.js'
 import { collectMemory } from './memory.js'
 import { getActivity, getCalendar, getChannels, getCommandLog, getDashboard, getKnowledge, getLogs, getOffice, getSnapshot, getTaskBoard, getTaskDetail } from './mission-control.js'
@@ -37,7 +38,9 @@ const routes: Record<string, (now: number) => Promise<unknown> | unknown> = {
   '/api/channels': getChannels,
   '/api/logs': getLogs,
   '/api/command-log': () => getCommandLog(),
+  '/api/system': () => getSystem(),
 }
+startSystemSampler()
 for (const [path, handler] of Object.entries(routes)) {
   app.get(path, async (request, response) => {
     const now = Date.now() + (request.query.fresh === '1' ? FRESH_WINDOW_MS : 0)
