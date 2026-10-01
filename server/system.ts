@@ -207,11 +207,19 @@ async function run(file: string, args: string[]): Promise<string> {
 async function serviceState(name: string): Promise<ServiceState> {
   for (const scope of ['--user', []] as const) {
     try {
-      return parseServiceState((await execFile('systemctl', [...scope, 'is-active', name], { timeout: COMMAND_TIMEOUT_MS })).stdout)
+      const { stdout } = await execFile('systemctl', [...scope, 'is-active', name], { timeout: COMMAND_TIMEOUT_MS, env: serviceEnv(scope === '--user') })
+      return parseServiceState(stdout)
     } catch (error) {
       const stdout = (error as { stdout?: string }).stdout
       if (stdout !== undefined && stdout.trim()) return parseServiceState(stdout)
     }
   }
   return 'unknown'
+}
+
+/** `systemctl --user` needs the session bus; a server started outside a login shell has to be told where it lives. */
+function serviceEnv(user: boolean): NodeJS.ProcessEnv {
+  if (!user || process.env.XDG_RUNTIME_DIR) return process.env
+  const uid = typeof process.getuid === 'function' ? process.getuid() : undefined
+  return uid === undefined ? process.env : { ...process.env, XDG_RUNTIME_DIR: `/run/user/${uid}` }
 }
