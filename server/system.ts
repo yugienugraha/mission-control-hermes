@@ -203,7 +203,11 @@ async function run(file: string, args: string[]): Promise<string> {
   return stdout
 }
 
-/** `systemctl is-active` for one service; the exit code distinguishes active/inactive. */
+/**
+ * `systemctl is-active` for one service: the user manager first, then the system manager.
+ * Exit codes disambiguate: 0 = active, 3 = inactive/failed (unit exists), other = no such unit
+ * (hermes-gateway is a --user unit, tailscaled a system one). Both scopes unknown -> 'unknown'.
+ */
 async function serviceState(name: string): Promise<ServiceState> {
   const scopes: string[][] = [['--user'], []]
   for (const scope of scopes) {
@@ -211,8 +215,10 @@ async function serviceState(name: string): Promise<ServiceState> {
       const { stdout } = await execFile('systemctl', [...scope, 'is-active', name], { timeout: COMMAND_TIMEOUT_MS, env: serviceEnv(scope.length > 0) })
       return parseServiceState(stdout)
     } catch (error) {
+      const code = (error as { code?: number }).code
       const stdout = (error as { stdout?: string }).stdout
-      if (stdout !== undefined && stdout.trim()) return parseServiceState(stdout)
+      if ((code === 0 || code === 3) && stdout !== undefined && stdout.trim()) return parseServiceState(stdout)
+      // Exit 4 (or empty stdout): the unit does not exist in this scope; try the next one.
     }
   }
   return 'unknown'
