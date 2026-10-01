@@ -217,9 +217,16 @@ async function serviceState(name: string): Promise<ServiceState> {
   return 'unknown'
 }
 
-/** `systemctl --user` needs the session bus; a server started outside a login shell has to be told where it lives. */
+/**
+ * `systemctl --user` needs the session bus (inject XDG_RUNTIME_DIR when missing) and must not
+ * believe it runs inside a unit: a server started from a systemd-managed shell inherits
+ * SYSTEMD_EXEC_PID/INVOCATION_ID, which makes systemctl report that unit's state instead.
+ */
 function serviceEnv(user: boolean): NodeJS.ProcessEnv {
-  if (!user || process.env.XDG_RUNTIME_DIR) return process.env
+  const clean = { ...process.env }
+  for (const key of ['SYSTEMD_EXEC_PID', 'MANAGERPID', 'INVOCATION_ID', 'JOURNAL_STREAM']) delete clean[key]
+  if (!user) return clean
+  if (clean.XDG_RUNTIME_DIR) return clean
   const uid = typeof process.getuid === 'function' ? process.getuid() : undefined
-  return uid === undefined ? process.env : { ...process.env, XDG_RUNTIME_DIR: `/run/user/${uid}` }
+  return uid === undefined ? clean : { ...clean, XDG_RUNTIME_DIR: `/run/user/${uid}` }
 }
